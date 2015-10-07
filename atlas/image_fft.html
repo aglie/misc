@@ -1,0 +1,77 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="lib/complex_array.js"></script>
+  <script src="lib/fft.js"></script>
+  <script src="lib/fft_image.js"></script>
+  <title></title>
+</head>    
+    <body>
+        <div>
+            <h3>Картинка</h3>
+            <img src="tank-nasc1.png"/>
+            <h3>И ее фурье преобразование</h3>
+            <canvas id="cnv" width="600" height="600"></canvas>
+        </div>
+    
+    
+        <script>
+        function getImageData(img) {
+            //Возвращает красный канал картинки
+            //
+            //Джаваскрипт - язык в котором много усилий уделяется безопасности. Много усилий потрачено на то чтобы всякий
+            //нехороший код просочившийся на страницу не мог украсть паролей и личных данных, в том числе картинок.
+            //Поэтому просто получить бинарные данные r g и b из картинки не так-то просто. 
+            //Тут бинарные данные получаются путем отрисовки картинки на canvas
+            // Create an empty canvas element
+            var w=img.width;
+            var h=img.height;
+
+            var canvas = document.createElement("canvas");
+            canvas.width = w;
+            canvas.height = h;
+
+            // Copy the image contents to the canvas
+            var ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0);
+
+            var pixels = ctx.getImageData(0,0,img.width,img.height)
+
+            //Фурье преобразование - достаточно затратная операция, поэтому 
+            //требует быстрых массивов
+            var result = new complex_array.ComplexArray(w*h,Float32Array);
+            for(var i = 0; i<w*h; i++)
+                result.real[i]=pixels.data[4*i];
+
+            result.width=w;
+            result.height=h;
+            return result;
+        }
+
+        window.onload=function(){
+            //Эта функция показывает примерно как делать скучную техническую часть фурье преобразования
+            
+            //Извлечение данных из картинки
+            img=document.getElementsByTagName('img')[0];
+            imageRed=getImageData(img);
+            
+            //Фурье преобразование
+            imageFFT=fft.FFT2D(imageRed,imageRed.width,imageRed.height,true);
+            
+            //Выгрузка данных в картинку
+            imgData=new ImageData(imageRed.width,imageRed.height);
+            for(var i=0;i<imageRed.width*imageRed.height; ++i)
+            {
+                for(var c=0;c<3;++c)
+                    imgData.data[i*4+c]=Math.abs(imageFFT.real[i])*10;
+                imgData.data[i*4+3]=255; //alpha
+            }
+            
+            //Вывод картинки в canvas
+            ctx=document.getElementById('cnv').getContext('2d');
+            ctx.putImageData(imgData,0,0);
+        }
+    </script>
+    </body>
+</html>
+
